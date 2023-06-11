@@ -1,0 +1,52 @@
+import { useCallback } from "react"
+import { useCustomFetch } from "src/hooks/useCustomFetch"
+import { SetTransactionApprovalParams } from "src/utils/types"
+import { TransactionPane } from "./TransactionPane"
+import { SetTransactionApprovalFunction, TransactionsComponent } from "./types"
+
+export const Transactions: TransactionsComponent = ({
+  transactions,
+  approvalStatus,
+  setApprovalStatus,
+}) => {
+  const { fetchWithoutCache, loading } = useCustomFetch()
+
+  const setTransactionApproval = useCallback<SetTransactionApprovalFunction>(
+    async ({ transactionId, newValue }) => {
+      await fetchWithoutCache<void, SetTransactionApprovalParams>("setTransactionApproval", {
+        transactionId,
+        value: newValue,
+      })
+
+      setApprovalStatus((prevStatus: any) => {
+        const newStatus = { ...prevStatus, [transactionId]: newValue }
+        return newStatus
+      })
+    },
+
+    [fetchWithoutCache]
+  )
+
+  if (transactions === null) {
+    return <div className="RampLoading--container">Loading...</div>
+  }
+
+  return (
+    <div data-testid="transaction-container">
+      {transactions.map((transaction) => (
+        <TransactionPane
+          key={transaction.id}
+          transaction={{
+            ...transaction,
+            approved:
+              approvalStatus[transaction.id] !== undefined
+                ? approvalStatus[transaction.id]
+                : transaction.approved,
+          }}
+          loading={loading}
+          setTransactionApproval={setTransactionApproval}
+        />
+      ))}
+    </div>
+  )
+}
